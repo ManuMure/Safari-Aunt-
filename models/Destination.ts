@@ -11,6 +11,7 @@ export interface IDestination extends mongoose.Document {
   attractions: string[];
   bestTimeToVisit?: string;
   activities: string[];
+  featured: boolean;
   published: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -28,6 +29,7 @@ const DestinationSchema = new Schema<IDestination>(
     attractions: [{ type: String }],
     bestTimeToVisit: { type: String },
     activities: [{ type: String }],
+    featured: { type: Boolean, default: false },
     published: { type: Boolean, default: false },
   },
   { timestamps: true }

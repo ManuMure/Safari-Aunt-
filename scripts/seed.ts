@@ -43,31 +43,40 @@ async function seed() {
   // admin dashboard exists. Safe to delete these documents later from
   // MongoDB Atlas once you're managing real content through the admin panel. ---
   const sampleDestinations = [
-    {
-      name: "Serengeti",
-      slug: "serengeti",
-      country: "Tanzania",
-      description: "Endless golden plains and the great migration.",
-      coverImage: "",
-      published: true,
-    },
-    {
-      name: "Kenyan Highlands",
-      slug: "kenyan-highlands",
-      country: "Kenya",
-      description: "Mist-shrouded peaks, ideal for a slower, restorative trip.",
-      coverImage: "",
-      published: true,
-    },
-    {
-      name: "Okavango Delta",
-      slug: "okavango-delta",
-      country: "Botswana",
-      description: "Lily-covered waterways navigated by traditional mokoro canoe.",
-      coverImage: "",
-      published: true,
-    },
-  ];
+  {
+    name: "Serengeti",
+    slug: "serengeti",
+    country: "Tanzania",
+    description: "Endless golden plains and the great migration.",
+    coverImage: "https://picsum.photos/seed/serengeti-dest/1200/600",
+    bestTimeToVisit: "June to September, for the great migration",
+    activities: ["Game Drives", "Hot Air Balloon Safari", "Photography"],
+    featured: true,
+    published: true,
+  },
+  {
+    name: "Kenyan Highlands",
+    slug: "kenyan-highlands",
+    country: "Kenya",
+    description: "Mist-shrouded peaks, ideal for a slower, restorative trip.",
+    coverImage: "https://picsum.photos/seed/highlands-dest/1200/600",
+    bestTimeToVisit: "January to March, for clear skies",
+    activities: ["Trekking", "Birdwatching", "Wellness Retreats"],
+    featured: true,
+    published: true,
+  },
+  {
+    name: "Okavango Delta",
+    slug: "okavango-delta",
+    country: "Botswana",
+    description: "Lily-covered waterways navigated by traditional mokoro canoe.",
+    coverImage: "https://picsum.photos/seed/okavango-dest/1200/600",
+    bestTimeToVisit: "July to October, dry season",
+    activities: ["Mokoro Canoe Trips", "Birdwatching", "Fishing"],
+    featured: true,
+    published: true,
+  },
+];
 
   const destinationDocs: Record<string, mongoose.Types.ObjectId> = {};
   for (const dest of sampleDestinations) {
