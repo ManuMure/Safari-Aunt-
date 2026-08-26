@@ -8,7 +8,13 @@ export interface TourListItem extends TourCardData {
   tourType: string;
 }
 
-export default function ToursBrowser({ tours }: { tours: TourListItem[] }) {
+export default function ToursBrowser({
+  tours,
+  initialQuery = "",
+}: {
+  tours: TourListItem[];
+  initialQuery?: string;
+}) {
   const tourTypes = useMemo(
     () => Array.from(new Set(tours.map((t) => t.tourType))),
     [tours]
@@ -18,6 +24,7 @@ export default function ToursBrowser({ tours }: { tours: TourListItem[] }) {
   const minPrice = prices.length ? Math.min(...prices) : 0;
   const maxPrice = prices.length ? Math.max(...prices) : 0;
 
+  const [search, setSearch] = useState(initialQuery);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [duration, setDuration] = useState("any");
   const [maxPriceFilter, setMaxPriceFilter] = useState(maxPrice);
@@ -29,6 +36,14 @@ export default function ToursBrowser({ tours }: { tours: TourListItem[] }) {
   };
 
   const filtered = tours.filter((tour) => {
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const matches =
+        tour.name.toLowerCase().includes(q) ||
+        tour.description.toLowerCase().includes(q) ||
+        tour.tourType.toLowerCase().includes(q);
+      if (!matches) return false;
+    }
     if (selectedTypes.length && !selectedTypes.includes(tour.tourType)) return false;
     if (duration === "short" && tour.durationDays > 3) return false;
     if (duration === "medium" && (tour.durationDays < 4 || tour.durationDays > 7)) return false;
@@ -103,15 +118,24 @@ export default function ToursBrowser({ tours }: { tours: TourListItem[] }) {
         )}
       </aside>
 
-      <div className="grid sm:grid-cols-2 gap-6">
-        {filtered.length === 0 && (
-          <p className="text-forest/60 col-span-full text-center py-16">
-            No tours match those filters yet.
-          </p>
-        )}
-        {filtered.map((tour) => (
-          <TourCard key={tour._id} tour={tour} />
-        ))}
+      <div>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search tours by name, type, or keyword..."
+          className="w-full border border-forest/20 rounded-lg px-4 py-2.5 text-sm mb-6 bg-white"
+        />
+        <div className="grid sm:grid-cols-2 gap-6">
+          {filtered.length === 0 && (
+            <p className="text-forest/60 col-span-full text-center py-16">
+              No tours match those filters yet.
+            </p>
+          )}
+          {filtered.map((tour) => (
+            <TourCard key={tour._id} tour={tour} />
+          ))}
+        </div>
       </div>
     </div>
   );

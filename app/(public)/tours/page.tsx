@@ -4,7 +4,11 @@ import ToursBrowser, { TourListItem } from "@/components/tours/ToursBrowser";
 
 export const dynamic = "force-dynamic";
 
-export default async function ToursPage() {
+interface PageProps {
+  searchParams: { q?: string };
+}
+
+export default async function ToursPage({ searchParams }: PageProps) {
   await connectDB();
 
   const tours = await Tour.find({ published: true })
@@ -36,7 +40,7 @@ export default async function ToursPage() {
           your spirit of adventure.
         </p>
       </section>
-      <ToursBrowser tours={tourList} />
+      <ToursBrowser tours={tourList} initialQuery={searchParams.q ?? ""} />
     </main>
   );
 }
