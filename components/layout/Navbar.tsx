@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User, LogOut } from "lucide-react";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -15,23 +15,31 @@ const NAV_LINKS = [
   { href: "/contact", label: "Contact" },
 ];
 
-export default function Navbar() {
+export default function Navbar({ isLoggedIn }: { isLoggedIn: boolean }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setOpen(false);
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-cream/95 backdrop-blur border-b border-forest/10">
-      <div className="mx-auto max-w-7xl px-4 h-full flex items-center justify-between">
+      <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-  <Image
-    src="/updatedimage.png"
-    alt="Safari Aunt Expedition"
-    width={100}
-    height={50}
-    className="rounded-lg"
-    priority
-  />
-</Link>
+          <Image
+            src="/updatedimage.png"
+            alt="Safari Aunt Expedition"
+            width={56}
+            height={56}
+            className="rounded-lg"
+            priority
+          />
+        </Link>
 
         <nav className="hidden md:flex items-center gap-8">
           {NAV_LINKS.map((link) => {
@@ -52,12 +60,38 @@ export default function Navbar() {
           })}
         </nav>
 
-        <Link
-          href="/booking"
-          className="hidden md:inline-block bg-rust hover:bg-rust-dark text-cream text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
-        >
-          Book Your Story
-        </Link>
+        <div className="hidden md:flex items-center gap-4">
+          {isLoggedIn ? (
+            <>
+              <Link
+                href="/account"
+                className="flex items-center gap-1.5 text-sm font-medium text-forest/80 hover:text-rust"
+              >
+                <User size={16} /> My Account
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="text-forest/50 hover:text-rust"
+                aria-label="Log out"
+              >
+                <LogOut size={16} />
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="text-sm font-medium text-forest/80 hover:text-rust"
+            >
+              Log In
+            </Link>
+          )}
+          <Link
+            href="/booking"
+            className="bg-rust hover:bg-rust-dark text-cream text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+          >
+            Book Your Story
+          </Link>
+        </div>
 
         <button
           className="md:hidden text-forest"
@@ -80,6 +114,26 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+
+          {isLoggedIn ? (
+            <>
+              <Link
+                href="/account"
+                onClick={() => setOpen(false)}
+                className="text-forest font-medium"
+              >
+                My Account
+              </Link>
+              <button onClick={handleLogout} className="text-left text-forest/60 font-medium">
+                Log Out
+              </button>
+            </>
+          ) : (
+            <Link href="/login" onClick={() => setOpen(false)} className="text-forest font-medium">
+              Log In
+            </Link>
+          )}
+
           <Link
             href="/booking"
             className="bg-rust text-cream text-center font-semibold px-5 py-2.5 rounded-lg"
