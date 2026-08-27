@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/db";
 import Tour from "@/models/Tour";
 import "@/models/Destination";
 import { requireStaff } from "@/lib/auth";
-import { TourInputSchema } from "../route";
+import { TourInputSchema } from "@/lib/validations/tour";
 import Booking from "@/models/Booking";
 
 interface RouteParams {
