@@ -15,7 +15,7 @@ export default function Hero() {
 
       <div className="relative mx-auto max-w-4xl px-6 py-28 text-center">
         <h1 className="font-serif text-5xl md:text-6xl text-forest mb-4">
-          Your Adventure, My Piority
+          Your Adventure, My Priority
         </h1>
         <p className="italic text-forest/70 text-lg max-w-xl mx-auto mb-10">
           &ldquo;I don&rsquo;t just show you a place, I create stories
