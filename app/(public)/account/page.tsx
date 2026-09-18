@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import Booking from "@/models/Booking";
 import "@/models/Tour";
+import VerifyEmailBanner from "@/components/account/verify-email-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function AccountPage() {
   await connectDB();
 
   const [user, bookings] = await Promise.all([
-    User.findById(session.userId).select("name email phone").lean<any>(),
+    User.findById(session.userId).select("name email phone emailVerified").lean<any>(),
     Booking.find({ customer: session.userId })
       .populate("tour", "name")
       .sort({ travelDate: -1 })
@@ -45,6 +46,8 @@ export default async function AccountPage() {
         Welcome, {user?.name?.split(" ")[0]}
       </h1>
       <p className="text-forest/60 mb-10">{user?.email}</p>
+
+      {user && !user.emailVerified && <VerifyEmailBanner email={user.email} />}
 
       <section className="mb-12">
         <h2 className="font-serif text-xl text-forest mb-4">Upcoming Trips</h2>

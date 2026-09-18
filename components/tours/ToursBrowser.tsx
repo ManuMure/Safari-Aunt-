@@ -6,7 +6,11 @@ import TourCard, { TourCardData } from "./TourCard";
 
 export interface TourListItem extends TourCardData {
   tourType: string;
+  difficulty: string;
+  destinationName: string;
 }
+
+const DIFFICULTY_OPTIONS = ["easy", "moderate", "challenging"] as const;
 
 export default function ToursBrowser({
   tours,
@@ -20,12 +24,19 @@ export default function ToursBrowser({
     [tours]
   );
 
+  const destinations = useMemo(
+    () => Array.from(new Set(tours.map((t) => t.destinationName))).sort(),
+    [tours]
+  );
+
   const prices = tours.map((t) => t.adultPrice);
   const minPrice = prices.length ? Math.min(...prices) : 0;
   const maxPrice = prices.length ? Math.max(...prices) : 0;
 
   const [search, setSearch] = useState(initialQuery);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [destination, setDestination] = useState("any");
+  const [difficulty, setDifficulty] = useState("any");
   const [duration, setDuration] = useState("any");
   const [maxPriceFilter, setMaxPriceFilter] = useState(maxPrice);
 
@@ -41,10 +52,13 @@ export default function ToursBrowser({
       const matches =
         tour.name.toLowerCase().includes(q) ||
         tour.description.toLowerCase().includes(q) ||
-        tour.tourType.toLowerCase().includes(q);
+        tour.tourType.toLowerCase().includes(q) ||
+        tour.destinationName.toLowerCase().includes(q);
       if (!matches) return false;
     }
     if (selectedTypes.length && !selectedTypes.includes(tour.tourType)) return false;
+    if (destination !== "any" && tour.destinationName !== destination) return false;
+    if (difficulty !== "any" && tour.difficulty !== difficulty) return false;
     if (duration === "short" && tour.durationDays > 3) return false;
     if (duration === "medium" && (tour.durationDays < 4 || tour.durationDays > 7)) return false;
     if (duration === "long" && tour.durationDays < 8) return false;
@@ -58,6 +72,24 @@ export default function ToursBrowser({
         <h3 className="flex items-center gap-2 font-semibold text-forest mb-6">
           <SlidersHorizontal size={18} /> Refine Your Story
         </h3>
+
+        {destinations.length > 0 && (
+          <div className="mb-6">
+            <p className="text-sm font-semibold text-forest mb-3">Destination</p>
+            <select
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              className="w-full border border-forest/20 rounded-lg px-3 py-2 text-sm text-forest/80 bg-white"
+            >
+              <option value="any">All Destinations</option>
+              {destinations.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {tourTypes.length > 0 && (
           <div className="mb-6">
@@ -82,6 +114,22 @@ export default function ToursBrowser({
             </div>
           </div>
         )}
+
+        <div className="mb-6">
+          <p className="text-sm font-semibold text-forest mb-3">Difficulty</p>
+          <select
+            value={difficulty}
+            onChange={(e) => setDifficulty(e.target.value)}
+            className="w-full border border-forest/20 rounded-lg px-3 py-2 text-sm text-forest/80 bg-white"
+          >
+            <option value="any">Any Difficulty</option>
+            {DIFFICULTY_OPTIONS.map((level) => (
+              <option key={level} value={level}>
+                {level.charAt(0).toUpperCase() + level.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="mb-6">
           <p className="text-sm font-semibold text-forest mb-3">Duration</p>

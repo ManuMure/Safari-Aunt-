@@ -5,11 +5,31 @@ import { connectDB } from "@/lib/db";
 import Destination from "@/models/Destination";
 import Tour from "@/models/Tour";
 import TourCard, { TourCardData } from "@/components/tours/TourCard";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: { slug: string };
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  await connectDB();
+  const destination = await Destination.findOne({ slug: params.slug, published: true })
+    .select("name country description coverImage")
+    .lean<any>();
+
+  if (!destination) return { title: "Destination Not Found | Safari Aunt Expedition" };
+
+  return {
+    title: `${destination.name}, ${destination.country} | Safari Aunt Expedition`,
+    description: destination.description?.slice(0, 160),
+    openGraph: {
+      title: destination.name,
+      description: destination.description?.slice(0, 160),
+      images: destination.coverImage ? [destination.coverImage] : undefined,
+    },
+  };
 }
 
 export default async function DestinationDetailPage({ params }: PageProps) {

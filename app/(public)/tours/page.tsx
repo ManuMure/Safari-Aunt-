@@ -1,8 +1,16 @@
 import { connectDB } from "@/lib/db";
 import Tour from "@/models/Tour";
+import "@/models/Destination";
 import ToursBrowser, { TourListItem } from "@/components/tours/ToursBrowser";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Curated Journeys | Safari Aunt Expedition",
+  description:
+    "Hand-picked safari itineraries across Kenya, Tanzania, and beyond — filter by destination, duration, and price.",
+};
 
 interface PageProps {
   searchParams: { q?: string };
@@ -12,7 +20,10 @@ export default async function ToursPage({ searchParams }: PageProps) {
   await connectDB();
 
   const tours = await Tour.find({ published: true })
-    .select("name slug tourType durationDays maxGroupSize pricing images description badge")
+    .select(
+      "name slug tourType difficulty durationDays maxGroupSize pricing images description badge destination"
+    )
+    .populate("destination", "name")
     .lean();
 
   const tourList: TourListItem[] = tours.map((t: any) => ({
@@ -21,6 +32,8 @@ export default async function ToursPage({ searchParams }: PageProps) {
     slug: t.slug,
     image: t.images?.[0],
     tourType: t.tourType,
+    difficulty: t.difficulty,
+    destinationName: t.destination?.name ?? "Unassigned",
     durationDays: t.durationDays,
     maxGroupSize: t.maxGroupSize,
     adultPrice: t.pricing.adultPrice,

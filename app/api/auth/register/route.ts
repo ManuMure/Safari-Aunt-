@@ -3,6 +3,8 @@ import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import { hashPassword, createSession } from "@/lib/auth";
+import { generateToken, hashToken, VERIFICATION_TOKEN_TTL_MS } from "@/lib/tokens";
+import { sendVerificationEmail } from "@/lib/email";
 
 const RegisterSchema = z.object({
   name: z.string().min(2, "Name is too short"),
@@ -36,6 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = await hashPassword(password);
+    const verificationToken = generateToken();
 
     const user = await User.create({
       name,
@@ -43,9 +46,20 @@ export async function POST(req: NextRequest) {
       password: passwordHash,
       phone,
       role: "customer",
+      emailVerificationTokenHash: hashToken(verificationToken),
+      emailVerificationExpires: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
+      emailVerificationSentAt: new Date(),
     });
 
     await createSession({ userId: user._id.toString(), role: "customer" });
+
+    // Don't fail signup if the email provider hiccups — they can request
+    // a new link from their account page.
+    try {
+      await sendVerificationEmail(user.email, user.name, verificationToken);
+    } catch (emailErr) {
+      console.error("Failed to send verification email on register:", emailErr);
+    }
 
     return NextResponse.json(
       { id: user._id, name: user.name, email: user.email },

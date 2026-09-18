@@ -20,6 +20,9 @@ export interface IUser extends mongoose.Document {
   role: UserRole;
   staffRole?: StaffRole;
   emailVerified: boolean;
+  emailVerificationTokenHash?: string;
+  emailVerificationExpires?: Date;
+  emailVerificationSentAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -51,6 +54,9 @@ const UserSchema = new Schema<IUser>(
       ],
     },
     emailVerified: { type: Boolean, default: false },
+    emailVerificationTokenHash: { type: String, select: false },
+    emailVerificationExpires: { type: Date, select: false },
+    emailVerificationSentAt: { type: Date, select: false },
   },
   { timestamps: true }
 );

@@ -1,15 +1,36 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Clock, Users, Check, X } from "lucide-react";
+import { Clock, Users } from "lucide-react";
 import { connectDB } from "@/lib/db";
 import Tour from "@/models/Tour";
 import "@/models/Destination";
+import type { Metadata } from "next";
+import TourGallery from "@/components/tours/TourGallery";
+import TourDetailTabs from "@/components/tours/TourDetailsTabs";
 
 export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: { slug: string };
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  await connectDB();
+  const tour = await Tour.findOne({ slug: params.slug, published: true })
+    .select("name description images")
+    .lean<any>();
+
+  if (!tour) return { title: "Tour Not Found | Safari Aunt Expedition" };
+
+  return {
+    title: `${tour.name} | Safari Aunt Expedition`,
+    description: tour.description?.slice(0, 160),
+    openGraph: {
+      title: tour.name,
+      description: tour.description?.slice(0, 160),
+      images: tour.images?.[0] ? [tour.images[0]] : undefined,
+    },
+  };
 }
 
 export default async function TourDetailPage({ params }: PageProps) {
@@ -25,34 +46,27 @@ export default async function TourDetailPage({ params }: PageProps) {
 
   return (
     <main>
-      <div className="relative h-80 bg-mustard-light">
-        {tour.images?.[0] && (
-          <Image
-            src={tour.images[0]}
-            alt={tour.name}
-            fill
-            sizes="100vw"
-            className="object-cover"
-            priority
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-forest/50 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 px-6 py-8 max-w-5xl mx-auto">
-          {tour.badge && (
-            <span className="inline-block bg-mustard text-forest text-xs font-bold uppercase px-3 py-1 rounded-full mb-3">
-              {tour.badge}
-            </span>
-          )}
-          <h1 className="font-serif text-3xl md:text-4xl text-cream">
-            {tour.name}
-          </h1>
-          {destination && (
-            <p className="text-cream/80 text-sm mt-1">
-              {destination.name}, {destination.country}
-            </p>
-          )}
-        </div>
-      </div>
+      <TourGallery
+        images={tour.images ?? []}
+        alt={tour.name}
+        overlay={
+          <>
+            {tour.badge && (
+              <span className="inline-block bg-mustard text-forest text-xs font-bold uppercase px-3 py-1 rounded-full mb-3">
+                {tour.badge}
+              </span>
+            )}
+            <h1 className="font-serif text-3xl md:text-4xl text-cream">
+              {tour.name}
+            </h1>
+            {destination && (
+              <p className="text-cream/80 text-sm mt-1">
+                {destination.name}, {destination.country}
+              </p>
+            )}
+          </>
+        }
+      />
 
       <div className="mx-auto max-w-5xl px-6 py-10 grid md:grid-cols-[1fr_320px] gap-10">
         <div>
@@ -65,58 +79,14 @@ export default async function TourDetailPage({ params }: PageProps) {
             </span>
           </div>
 
-          <section className="mb-10">
-            <h2 className="font-serif text-2xl text-forest mb-3">Overview</h2>
-            <p className="text-forest/70 leading-relaxed">{tour.description}</p>
-          </section>
-
-          {tour.itinerary?.length > 0 && (
-            <section className="mb-10">
-              <h2 className="font-serif text-2xl text-forest mb-5">Itinerary</h2>
-              <div className="space-y-6">
-                {tour.itinerary.map((day: any) => (
-                  <div key={day.day} className="flex gap-4">
-                    <div className="shrink-0 w-10 h-10 rounded-full bg-forest text-cream flex items-center justify-center font-semibold text-sm">
-                      {day.day}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-forest mb-1">{day.title}</h3>
-                      <p className="text-sm text-forest/70">{day.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section className="grid sm:grid-cols-2 gap-8">
-            {tour.inclusions?.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-forest mb-3">What&rsquo;s Included</h3>
-                <ul className="space-y-2 text-sm text-forest/70">
-                  {tour.inclusions.map((item: string) => (
-                    <li key={item} className="flex items-start gap-2">
-                      <Check size={16} className="text-forest mt-0.5 shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {tour.exclusions?.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-forest mb-3">Not Included</h3>
-                <ul className="space-y-2 text-sm text-forest/70">
-                  {tour.exclusions.map((item: string) => (
-                    <li key={item} className="flex items-start gap-2">
-                      <X size={16} className="text-rust mt-0.5 shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </section>
+          <TourDetailTabs
+            description={tour.description}
+            itinerary={tour.itinerary ?? []}
+            inclusions={tour.inclusions ?? []}
+            exclusions={tour.exclusions ?? []}
+            whatToBring={tour.whatToBring ?? []}
+            cancellationPolicy={tour.cancellationPolicy}
+          />
         </div>
 
         <aside className="h-fit bg-white border border-forest/10 rounded-xl p-6 sticky top-24">

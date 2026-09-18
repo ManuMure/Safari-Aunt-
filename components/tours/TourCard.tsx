@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Users } from "lucide-react";
+import { Clock, MapPin, Users } from "lucide-react";
 
 export interface TourCardData {
   _id: string;
@@ -13,6 +13,7 @@ export interface TourCardData {
   description: string;
   badge?: string;
   tags: string[];
+  destinationName?: string;
 }
 
 export default function TourCard({ tour }: { tour: TourCardData }) {
@@ -42,6 +43,12 @@ export default function TourCard({ tour }: { tour: TourCardData }) {
             KSh {tour.adultPrice.toLocaleString()}
           </span>
         </div>
+
+        {tour.destinationName && (
+          <p className="flex items-center gap-1 text-xs text-forest/50 mb-2">
+            <MapPin size={12} /> {tour.destinationName}
+          </p>
+        )}
 
         <div className="flex items-center gap-4 text-sm text-forest/60 mb-3">
           <span className="flex items-center gap-1">
