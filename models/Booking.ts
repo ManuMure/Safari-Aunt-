@@ -30,6 +30,13 @@ export interface IBooking extends mongoose.Document {
   totalAmount: number;
   amountPaid: number;
 
+    priceBreakdown?: {
+    adultPrice: number;
+    childPrice: number;
+    singleRoomSupplement?: number;
+    seasonName?: string;
+  };
+
   status: BookingStatus;
 
   internalNotes: string[];
@@ -62,6 +69,13 @@ const BookingSchema = new Schema<IBooking>(
 
     totalAmount: { type: Number, required: true },
     amountPaid: { type: Number, default: 0 },
+
+     priceBreakdown: {
+      adultPrice: { type: Number },
+      childPrice: { type: Number },
+      singleRoomSupplement: { type: Number },
+      seasonName: { type: String },
+    },
 
     status: {
       type: String,

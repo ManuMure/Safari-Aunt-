@@ -50,6 +50,41 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // The admin form never sends `booked` — it's system-tracked as bookings
+    // come in. Preserve it per date, matched by day, and refuse to shrink
+    // capacity below what's already booked.
+    const existingTour = await Tour.findById(params.id).select("availability").lean<any>();
+    const existingBookedByDay = new Map<string, number>(
+      (existingTour?.availability ?? []).map((a: any) => [
+        new Date(a.date).toISOString().slice(0, 10),
+        a.booked,
+      ])
+    );
+
+    const availability = [];
+    for (const a of data.availability) {
+      const day = new Date(a.date).toISOString().slice(0, 10);
+      const booked = existingBookedByDay.get(day) ?? 0;
+
+      if (a.capacity < booked) {
+        return NextResponse.json(
+          {
+            error: `Can't set capacity for ${day} below ${booked} — that many spots are already booked.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      availability.push({
+        date: new Date(a.date),
+        capacity: a.capacity,
+        booked,
+        status: a.status,
+        adultPriceOverride: a.adultPriceOverride,
+        childPriceOverride: a.childPriceOverride,
+      });
+    }
+
     const tour = await Tour.findByIdAndUpdate(
       params.id,
       {
@@ -70,8 +105,15 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           adultPrice: data.adultPrice,
           childPrice: data.childPrice,
           singleRoomSupplement: data.singleRoomSupplement,
-          seasonalPricing: [],
+          seasonalPricing: data.seasonalPricing.map((s) => ({
+            name: s.name,
+            startDate: new Date(s.startDate),
+            endDate: new Date(s.endDate),
+            adultPrice: s.adultPrice,
+            childPrice: s.childPrice,
+          })),
         },
+        availability,
         inclusions: data.inclusions,
         exclusions: data.exclusions,
         whatToBring: data.whatToBring,

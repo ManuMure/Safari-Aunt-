@@ -26,6 +26,7 @@ export default async function AdminBookingDetailPage({ params }: PageProps) {
     specialRequests: booking.specialRequests,
     totalAmount: booking.totalAmount,
     amountPaid: booking.amountPaid,
+    priceBreakdown: booking.priceBreakdown,
     status: booking.status,
     internalNotes: booking.internalNotes ?? [],
   };

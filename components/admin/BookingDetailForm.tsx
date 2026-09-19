@@ -13,9 +13,20 @@ export interface BookingDetail {
   specialRequests?: string;
   totalAmount: number;
   amountPaid: number;
+
+    priceBreakdown?: {
+    adultPrice: number;
+    childPrice: number;
+    singleRoomSupplement?: number;
+    seasonName?: string;
+  };
+
+  
   status: "pending" | "confirmed" | "cancelled" | "completed";
   internalNotes: string[];
 }
+
+
 
 export default function BookingDetailForm({ booking }: { booking: BookingDetail }) {
   const router = useRouter();
@@ -167,16 +178,37 @@ export default function BookingDetailForm({ booking }: { booking: BookingDetail 
           />
         </div>
 
-        <div className="text-sm space-y-1 border-t border-forest/10 pt-3">
+       <div className="text-sm space-y-1 border-t border-forest/10 pt-3">
+          {booking.priceBreakdown && (
+            <div className="text-xs text-forest/50 space-y-0.5 pb-2">
+              <div className="flex justify-between">
+                <span>{booking.travelers.adults} × Adult</span>
+                <span>KSh {booking.priceBreakdown.adultPrice.toLocaleString()} each</span>
+              </div>
+              {booking.travelers.children > 0 && (
+                <div className="flex justify-between">
+                  <span>{booking.travelers.children} × Child</span>
+                  <span>KSh {booking.priceBreakdown.childPrice.toLocaleString()} each</span>
+                </div>
+              )}
+              {!!booking.priceBreakdown.singleRoomSupplement && (
+                <div className="flex justify-between">
+                  <span>Single room</span>
+                  <span>KSh {booking.priceBreakdown.singleRoomSupplement.toLocaleString()}</span>
+                </div>
+              )}
+              {booking.priceBreakdown.seasonName && (
+                <p className="italic pt-0.5">{booking.priceBreakdown.seasonName} pricing</p>
+              )}
+            </div>
+          )}
           <div className="flex justify-between text-forest/70">
             <span>Total</span>
             <span>KSh {booking.totalAmount.toLocaleString()}</span>
           </div>
-          <div className="flex justify-between font-semibold text-forest">
-            <span>Balance Due</span>
-            <span>KSh {balance.toLocaleString()}</span>
+
           </div>
-        </div>
+
 
         {error && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">

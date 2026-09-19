@@ -34,6 +34,29 @@ export default async function BookingPage({ searchParams }: PageProps) {
 
   if (!tour) notFound();
 
+  // Only future, still-open-or-sold-out dates are worth showing — closed
+  // dates were never bookable and would just clutter the picker.
+  const availability = (tour.availability ?? [])
+    .filter((a: any) => new Date(a.date) >= new Date(new Date().toDateString()))
+    .filter((a: any) => a.status !== "closed")
+    .map((a: any) => ({
+      date: new Date(a.date).toISOString(),
+      capacity: a.capacity,
+      booked: a.booked,
+      status: a.status,
+      adultPriceOverride: a.adultPriceOverride,
+      childPriceOverride: a.childPriceOverride,
+    }))
+    .sort((a: any, b: any) => a.date.localeCompare(b.date));
+
+  const seasonalPricing = (tour.pricing.seasonalPricing ?? []).map((s: any) => ({
+    name: s.name,
+    startDate: new Date(s.startDate).toISOString(),
+    endDate: new Date(s.endDate).toISOString(),
+    adultPrice: s.adultPrice,
+    childPrice: s.childPrice,
+  }));
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
       <h1 className="font-serif text-3xl md:text-4xl text-forest mb-2">
@@ -48,7 +71,11 @@ export default async function BookingPage({ searchParams }: PageProps) {
         tourName={tour.name}
         adultPrice={tour.pricing.adultPrice}
         childPrice={tour.pricing.childPrice}
+        singleRoomSupplement={tour.pricing.singleRoomSupplement}
+        seasonalPricing={seasonalPricing}
+        availability={availability}
         maxGroupSize={tour.maxGroupSize}
+        minTravelers={tour.minTravelers}
       />
     </main>
   );

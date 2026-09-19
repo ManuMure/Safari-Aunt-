@@ -2,13 +2,27 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { resolvePricing, type SeasonalPriceInput } from "@/lib/pricing";
+
+interface AvailabilityDateProp {
+  date: string;
+  capacity: number;
+  booked: number;
+  status: "open" | "closed" | "sold_out";
+  adultPriceOverride?: number;
+  childPriceOverride?: number;
+}
 
 interface BookingFormProps {
   tourSlug: string;
   tourName: string;
   adultPrice: number;
   childPrice: number;
+  singleRoomSupplement?: number;
+  seasonalPricing: SeasonalPriceInput[];
+  availability: AvailabilityDateProp[];
   maxGroupSize: number;
+  minTravelers: number;
 }
 
 export default function BookingForm({
@@ -16,13 +30,20 @@ export default function BookingForm({
   tourName,
   adultPrice,
   childPrice,
+  singleRoomSupplement,
+  seasonalPricing,
+  availability,
   maxGroupSize,
+  minTravelers,
 }: BookingFormProps) {
   const router = useRouter();
 
+  const hasFixedDepartures = availability.length > 0;
+
   const [travelDate, setTravelDate] = useState("");
-  const [adults, setAdults] = useState(1);
+  const [adults, setAdults] = useState(Math.max(1, minTravelers));
   const [children, setChildren] = useState(0);
+  const [wantsSingleRoom, setWantsSingleRoom] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -32,14 +53,37 @@ export default function BookingForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const total = useMemo(
-    () => adults * adultPrice + children * childPrice,
-    [adults, children, adultPrice, childPrice]
+  const selectedAvailability = useMemo(
+    () => availability.find((a) => a.date === travelDate),
+    [availability, travelDate]
   );
+
+  const pricing = useMemo(() => {
+    if (!travelDate) return { adultPrice, childPrice, seasonName: undefined as string | undefined };
+    return resolvePricing({ adultPrice, childPrice, seasonalPricing }, availability, travelDate);
+  }, [travelDate, adultPrice, childPrice, seasonalPricing, availability]);
+
+  const singleRoomFee = wantsSingleRoom ? singleRoomSupplement ?? 0 : 0;
+
+  const total = useMemo(
+    () => adults * pricing.adultPrice + children * pricing.childPrice + singleRoomFee,
+    [adults, children, pricing, singleRoomFee]
+  );
+
+  const totalTravelers = adults + children;
+  const remainingSpots = selectedAvailability
+    ? selectedAvailability.capacity - selectedAvailability.booked
+    : undefined;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (totalTravelers < minTravelers) {
+      setError(`This tour requires at least ${minTravelers} traveler(s).`);
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -51,6 +95,7 @@ export default function BookingForm({
           travelDate,
           adults,
           children,
+          wantsSingleRoom,
           fullName,
           email,
           phone,
@@ -84,14 +129,41 @@ export default function BookingForm({
               <label className="block text-sm font-medium text-forest mb-1">
                 Travel Date
               </label>
-              <input
-                type="date"
-                required
-                value={travelDate}
-                onChange={(e) => setTravelDate(e.target.value)}
-                min={new Date().toISOString().split("T")[0]}
-                className="w-full border border-forest/20 rounded-lg px-3 py-2 text-sm"
-              />
+              {hasFixedDepartures ? (
+                <select
+                  required
+                  value={travelDate}
+                  onChange={(e) => setTravelDate(e.target.value)}
+                  className="w-full border border-forest/20 rounded-lg px-3 py-2 text-sm bg-white"
+                >
+                  <option value="" disabled>
+                    Choose a departure
+                  </option>
+                  {availability.map((a) => {
+                    const spotsLeft = a.capacity - a.booked;
+                    const soldOut = a.status === "sold_out" || spotsLeft <= 0;
+                    return (
+                      <option key={a.date} value={a.date} disabled={soldOut}>
+                        {new Date(a.date).toLocaleDateString("en-KE", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                        {soldOut ? " — Fully booked" : ` — ${spotsLeft} spots left`}
+                      </option>
+                    );
+                  })}
+                </select>
+              ) : (
+                <input
+                  type="date"
+                  required
+                  value={travelDate}
+                  onChange={(e) => setTravelDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
+                  className="w-full border border-forest/20 rounded-lg px-3 py-2 text-sm"
+                />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-forest mb-1">
@@ -120,8 +192,31 @@ export default function BookingForm({
             </div>
           </div>
           <p className="text-xs text-forest/50 mt-2">
-            Maximum {maxGroupSize} travelers per group for this tour.
+            {minTravelers > 1 ? `Minimum ${minTravelers}, maximum ` : "Maximum "}
+            {maxGroupSize} travelers for this tour.
           </p>
+          {hasFixedDepartures && remainingSpots !== undefined && (
+            <p className="text-xs text-rust mt-1">
+              {remainingSpots} spot{remainingSpots === 1 ? "" : "s"} left on this date.
+            </p>
+          )}
+          {pricing.seasonName && (
+            <p className="text-xs text-forest/60 mt-1">
+              {pricing.seasonName} pricing applied for this date.
+            </p>
+          )}
+
+          {singleRoomSupplement ? (
+            <label className="flex items-center gap-2 text-sm text-forest/80 mt-4">
+              <input
+                type="checkbox"
+                checked={wantsSingleRoom}
+                onChange={(e) => setWantsSingleRoom(e.target.checked)}
+                className="accent-forest"
+              />
+              I need a single room (+KSh {singleRoomSupplement.toLocaleString()})
+            </label>
+          ) : null}
         </div>
 
         <div>
@@ -201,12 +296,18 @@ export default function BookingForm({
         <div className="space-y-2 text-sm text-forest/70 mb-4">
           <div className="flex justify-between">
             <span>{adults} × Adult</span>
-            <span>KSh {(adults * adultPrice).toLocaleString()}</span>
+            <span>KSh {(adults * pricing.adultPrice).toLocaleString()}</span>
           </div>
           {children > 0 && (
             <div className="flex justify-between">
               <span>{children} × Child</span>
-              <span>KSh {(children * childPrice).toLocaleString()}</span>
+              <span>KSh {(children * pricing.childPrice).toLocaleString()}</span>
+            </div>
+          )}
+          {singleRoomFee > 0 && (
+            <div className="flex justify-between">
+              <span>Single room</span>
+              <span>KSh {singleRoomFee.toLocaleString()}</span>
             </div>
           )}
         </div>

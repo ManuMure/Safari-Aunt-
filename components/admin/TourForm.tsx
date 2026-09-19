@@ -16,6 +16,23 @@ interface ItineraryDay {
   description: string;
 }
 
+interface SeasonalPriceForm {
+  name: string;
+  startDate: string;
+  endDate: string;
+  adultPrice: number;
+  childPrice: number;
+}
+
+interface AvailabilityDateForm {
+  date: string;
+  capacity: number;
+  booked?: number; // read-only display; the server tracks this, the form never sends it
+  status: "open" | "closed" | "sold_out";
+  adultPriceOverride: number | "";
+  childPriceOverride: number | "";
+}
+
 export interface TourFormValues {
   name: string;
   slug: string;
@@ -33,6 +50,8 @@ export interface TourFormValues {
   adultPrice: number;
   childPrice: number;
   singleRoomSupplement: number | "";
+  seasonalPricing: SeasonalPriceForm[];
+  availability: AvailabilityDateForm[];
   inclusions: string;
   exclusions: string;
   whatToBring: string;
@@ -65,6 +84,8 @@ const EMPTY_VALUES: TourFormValues = {
   adultPrice: 0,
   childPrice: 0,
   singleRoomSupplement: "",
+  seasonalPricing: [],
+  availability: [],
   inclusions: "",
   exclusions: "",
   whatToBring: "",
@@ -122,6 +143,44 @@ export default function TourForm({
     );
   }
 
+  function addSeason() {
+    update("seasonalPricing", [
+      ...values.seasonalPricing,
+      { name: "", startDate: "", endDate: "", adultPrice: 0, childPrice: 0 },
+    ]);
+  }
+
+  function updateSeason(index: number, field: keyof SeasonalPriceForm, value: string | number) {
+    const next = [...values.seasonalPricing];
+    next[index] = { ...next[index], [field]: value };
+    update("seasonalPricing", next);
+  }
+
+  function removeSeason(index: number) {
+    update("seasonalPricing", values.seasonalPricing.filter((_, i) => i !== index));
+  }
+
+  function addAvailabilityDate() {
+    update("availability", [
+      ...values.availability,
+      { date: "", capacity: 1, status: "open", adultPriceOverride: "", childPriceOverride: "" },
+    ]);
+  }
+
+  function updateAvailabilityDate(
+    index: number,
+    field: keyof AvailabilityDateForm,
+    value: string | number
+  ) {
+    const next = [...values.availability];
+    next[index] = { ...next[index], [field]: value };
+    update("availability", next);
+  }
+
+  function removeAvailabilityDate(index: number) {
+    update("availability", values.availability.filter((_, i) => i !== index));
+  }
+
   function linesToArray(text: string) {
     return text
       .split("\n")
@@ -152,6 +211,22 @@ export default function TourForm({
       childPrice: Number(values.childPrice),
       singleRoomSupplement:
         values.singleRoomSupplement === "" ? undefined : Number(values.singleRoomSupplement),
+      seasonalPricing: values.seasonalPricing.map((s) => ({
+        name: s.name,
+        startDate: s.startDate,
+        endDate: s.endDate,
+        adultPrice: Number(s.adultPrice),
+        childPrice: Number(s.childPrice),
+      })),
+      // `booked` is intentionally left out — the server preserves it from
+      // what's already stored, keyed by date.
+      availability: values.availability.map((a) => ({
+        date: a.date,
+        capacity: Number(a.capacity),
+        status: a.status,
+        adultPriceOverride: a.adultPriceOverride === "" ? undefined : Number(a.adultPriceOverride),
+        childPriceOverride: a.childPriceOverride === "" ? undefined : Number(a.childPriceOverride),
+      })),
       inclusions: linesToArray(values.inclusions),
       exclusions: linesToArray(values.exclusions),
       whatToBring: linesToArray(values.whatToBring),
@@ -375,6 +450,170 @@ export default function TourForm({
             />
           </Field>
         </div>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-serif text-xl text-forest">Seasonal Pricing</h2>
+          <p className="text-xs text-forest/50">
+            Optional. A travel date inside one of these windows charges this rate instead of
+            the base adult/child price above. Leave empty if this tour doesn&rsquo;t vary by season.
+          </p>
+        </div>
+        <div className="space-y-4">
+          {values.seasonalPricing.map((season, i) => (
+            <div key={i} className="bg-white border border-forest/10 rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <input
+                  type="text"
+                  placeholder="Season name, e.g. Peak Season"
+                  value={season.name}
+                  onChange={(e) => updateSeason(i, "name", e.target.value)}
+                  className="input flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeSeason(i)}
+                  className="shrink-0 text-red-500 hover:text-red-700"
+                  aria-label="Remove season"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+              <div className="grid sm:grid-cols-4 gap-3">
+                <Field label="Start Date">
+                  <input
+                    type="date"
+                    value={season.startDate}
+                    onChange={(e) => updateSeason(i, "startDate", e.target.value)}
+                    className="input"
+                  />
+                </Field>
+                <Field label="End Date">
+                  <input
+                    type="date"
+                    value={season.endDate}
+                    onChange={(e) => updateSeason(i, "endDate", e.target.value)}
+                    className="input"
+                  />
+                </Field>
+                <Field label="Adult Price (KSh)">
+                  <input
+                    type="number"
+                    min={0}
+                    value={season.adultPrice}
+                    onChange={(e) => updateSeason(i, "adultPrice", Number(e.target.value))}
+                    className="input"
+                  />
+                </Field>
+                <Field label="Child Price (KSh)">
+                  <input
+                    type="number"
+                    min={0}
+                    value={season.childPrice}
+                    onChange={(e) => updateSeason(i, "childPrice", Number(e.target.value))}
+                    className="input"
+                  />
+                </Field>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={addSeason}
+          className="flex items-center gap-2 text-sm font-semibold text-forest hover:text-forest-dark"
+        >
+          <Plus size={16} /> Add Season
+        </button>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-serif text-xl text-forest">Fixed Departure Dates</h2>
+          <p className="text-xs text-forest/50">
+            Optional. Add specific dates this tour departs, each with its own capacity. If you
+            leave this empty, the tour is bookable on any future date (subject to Max Group Size).
+          </p>
+        </div>
+        <div className="space-y-4">
+          {values.availability.map((slot, i) => (
+            <div key={i} className="bg-white border border-forest/10 rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-sm font-medium text-forest">
+                  {slot.booked ? `${slot.booked} already booked` : "No bookings yet"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeAvailabilityDate(i)}
+                  className="shrink-0 text-red-500 hover:text-red-700"
+                  aria-label="Remove date"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+              <div className="grid sm:grid-cols-4 gap-3">
+                <Field label="Date">
+                  <input
+                    type="date"
+                    value={slot.date}
+                    onChange={(e) => updateAvailabilityDate(i, "date", e.target.value)}
+                    className="input"
+                  />
+                </Field>
+                <Field label="Capacity">
+                  <input
+                    type="number"
+                    min={slot.booked || 1}
+                    value={slot.capacity}
+                    onChange={(e) => updateAvailabilityDate(i, "capacity", Number(e.target.value))}
+                    className="input"
+                  />
+                </Field>
+                <Field label="Status">
+                  <select
+                    value={slot.status}
+                    onChange={(e) =>
+                      updateAvailabilityDate(
+                        i,
+                        "status",
+                        e.target.value as AvailabilityDateForm["status"]
+                      )
+                    }
+                    className="input"
+                  >
+                    <option value="open">Open</option>
+                    <option value="closed">Closed</option>
+                    <option value="sold_out">Sold Out</option>
+                  </select>
+                </Field>
+                <Field label="Price Override (optional)">
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="Adult KSh"
+                    value={slot.adultPriceOverride}
+                    onChange={(e) =>
+                      updateAvailabilityDate(
+                        i,
+                        "adultPriceOverride",
+                        e.target.value === "" ? "" : Number(e.target.value)
+                      )
+                    }
+                    className="input"
+                  />
+                </Field>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={addAvailabilityDate}
+          className="flex items-center gap-2 text-sm font-semibold text-forest hover:text-forest-dark"
+        >
+          <Plus size={16} /> Add Departure Date
+        </button>
       </section>
 
       <section className="space-y-4">

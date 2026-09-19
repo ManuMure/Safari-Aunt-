@@ -6,8 +6,6 @@ import "@/models/Destination"; // registers schema so .populate("destination") w
 import { requireStaff } from "@/lib/auth";
 import { TourInputSchema } from "@/lib/validations/tour";
 
-
-
 export async function GET() {
   const session = await requireStaff();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -66,8 +64,22 @@ export async function POST(req: NextRequest) {
         adultPrice: data.adultPrice,
         childPrice: data.childPrice,
         singleRoomSupplement: data.singleRoomSupplement,
-        seasonalPricing: [],
+        seasonalPricing: data.seasonalPricing.map((s) => ({
+          name: s.name,
+          startDate: new Date(s.startDate),
+          endDate: new Date(s.endDate),
+          adultPrice: s.adultPrice,
+          childPrice: s.childPrice,
+        })),
       },
+      availability: data.availability.map((a) => ({
+        date: new Date(a.date),
+        capacity: a.capacity,
+        booked: 0,
+        status: a.status,
+        adultPriceOverride: a.adultPriceOverride,
+        childPriceOverride: a.childPriceOverride,
+      })),
       inclusions: data.inclusions,
       exclusions: data.exclusions,
       whatToBring: data.whatToBring,
