@@ -76,3 +76,10 @@ export async function requireStaff(): Promise<SessionPayload | null> {
   if (!session || session.role !== "staff") return null;
   return session;
 }
+
+/** Throws-free helper for API routes: returns null if not a logged-in customer. */
+export async function requireCustomer(): Promise<SessionPayload | null> {
+  const session = await getSession();
+  if (!session || session.role !== "customer") return null;
+  return session;
+}

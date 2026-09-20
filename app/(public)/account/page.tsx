@@ -6,6 +6,8 @@ import User from "@/models/User";
 import Booking from "@/models/Booking";
 import "@/models/Tour";
 import VerifyEmailBanner from "@/components/account/verify-email-banner";
+import ProfileForm from "@/components/account/ProfileForm";
+import PasswordForm from "@/components/account/PasswordForm";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +27,7 @@ export default async function AccountPage() {
   await connectDB();
 
   const [user, bookings] = await Promise.all([
-    User.findById(session.userId).select("name email phone emailVerified").lean<any>(),
+    User.findById(session.userId).select("name email phone country emailVerified").lean<any>(),
     Booking.find({ customer: session.userId })
       .populate("tour", "name")
       .sort({ travelDate: -1 })
@@ -62,7 +64,7 @@ export default async function AccountPage() {
         )}
       </section>
 
-      <section>
+      <section className="mb-12">
         <h2 className="font-serif text-xl text-forest mb-4">Past Trips</h2>
         {past.length === 0 ? (
           <EmptyState message="Your completed trips will show up here." />
@@ -73,6 +75,16 @@ export default async function AccountPage() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="mb-12">
+        <h2 className="font-serif text-xl text-forest mb-4">Profile</h2>
+        <ProfileForm name={user?.name ?? ""} phone={user?.phone} country={user?.country} />
+      </section>
+
+      <section>
+        <h2 className="font-serif text-xl text-forest mb-4">Security</h2>
+        <PasswordForm />
       </section>
     </main>
   );
@@ -90,12 +102,15 @@ function EmptyState({ message }: { message: string }) {
 }
 
 function BookingRow({ booking }: { booking: any }) {
+  const balance = booking.totalAmount - booking.amountPaid;
+  const isPaidInFull = balance <= 0;
+
   return (
     <Link
       href={`/booking/confirmation?ref=${booking.bookingRef}`}
-      className="flex items-center justify-between bg-white border border-forest/10 rounded-xl p-5 hover:border-forest/30 transition-colors"
+      className="flex items-center justify-between bg-white border border-forest/10 rounded-xl p-5 hover:border-forest/30 transition-colors gap-4"
     >
-      <div>
+      <div className="min-w-0">
         <p className="font-semibold text-forest">{booking.tour?.name ?? "—"}</p>
         <p className="text-sm text-forest/60">
           {new Date(booking.travelDate).toLocaleDateString("en-KE", {
@@ -106,9 +121,16 @@ function BookingRow({ booking }: { booking: any }) {
           {" · "}
           {booking.bookingRef}
         </p>
+        {booking.status !== "cancelled" && (
+          <p className="text-xs text-forest/50 mt-1">
+            {isPaidInFull
+              ? "Paid in full"
+              : `KSh ${balance.toLocaleString()} due of KSh ${booking.totalAmount.toLocaleString()}`}
+          </p>
+        )}
       </div>
       <span
-        className={`inline-block px-3 py-1 rounded-full text-xs font-medium capitalize ${
+        className={`shrink-0 inline-block px-3 py-1 rounded-full text-xs font-medium capitalize ${
           STATUS_STYLES[booking.status] ?? "bg-forest/10 text-forest"
         }`}
       >
