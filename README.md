@@ -1,4 +1,4 @@
-# Travel Agency Platform — Phase 0
+# Travel Agency Platform 
 
 Foundation layer: project scaffold, MongoDB connection, the five core
 schemas, and session-based auth. No public-facing UI yet — that's Phase 1.
@@ -92,7 +92,3 @@ curl http://localhost:3000/api/auth/session -b cookies.txt
   design; `customerInfo` is always captured regardless of whether the
   person has an account.
 
-## Next: Phase 1
-
-Public site (homepage, destinations, tours, search, tour details, booking
-flow, contact form) + admin CRUD for tours/bookings/customers.
